@@ -68,6 +68,13 @@ namespace ReactMoviesWebApi.Controllers
             return _mapper.Map<List<GenreDTO>>(genres);
         }
 
+        [HttpGet("all")]               // api/genres
+        public async Task<ActionResult<List<GenreDTO>>> Get()
+        {
+            var genres = await _context.Genres.OrderBy(genre => genre.Name).ToListAsync();
+            return _mapper.Map<List<GenreDTO>>(genres);
+        }
+
         [HttpGet("{id:int}")]
         // ------------------------------< CLEANUP CODE >------------------------------
         // this get adds to the Route attribute

@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
@@ -8,6 +9,8 @@ using ReactMoviesWebApi.API_Behavior;
 using ReactMoviesWebApi.Filters;
 using ReactMoviesWebApi.Helpers;
 using ReactMoviesWebApi.Services;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,7 +61,22 @@ builder.Services.AddSwaggerGen();
 //builder.Services.AddResponseCaching();
 // ------------------------------< CLEANUP CODE >------------------------------
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Key:Jwt"]))
+        }
+    });
 
 // ------------------------------< CLEANUP CODE >------------------------------
 //builder.Services.AddSingleton<IRepository, InMemoryRepository>();
