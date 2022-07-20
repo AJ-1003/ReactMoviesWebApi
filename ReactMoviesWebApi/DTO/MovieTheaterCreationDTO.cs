@@ -4,8 +4,8 @@ namespace ReactMoviesWebApi.DTO
 {
     public class MovieTheaterCreationDTO
     {
-        [Required]
-        [StringLength(maximumLength: 75)]
+        [Required(ErrorMessage = "The {0} field is required!")]
+        [StringLength(maximumLength: 75, ErrorMessage = "The {0} field cannot contain more than 75 characters!")]
         public string Name { get; set; }
         [Range(-90, 90)]
         public double Latitude { get; set; }

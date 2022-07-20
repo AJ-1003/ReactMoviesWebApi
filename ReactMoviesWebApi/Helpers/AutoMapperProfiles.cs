@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using NetTopologySuite.Geometries;
 using ReactMoviesWebApi.DTO;
 using ReactMoviesWebApi.Entities;
@@ -9,35 +10,46 @@ namespace ReactMoviesWebApi.Helpers
     {
         public AutoMapperProfiles(GeometryFactory geometryFactory)
         {
-            // Mapping for Genres
+            #region Mapping for Genres
             CreateMap<GenreDTO, Genre>().ReverseMap();
             CreateMap<GenreCreationDTO, Genre>();
+            #endregion
 
-            // Mapping for Actors
+            #region Mapping for Actors
             CreateMap<ActorDTO, Actor>().ReverseMap();
             CreateMap<ActorCreationDTO, Actor>()
                 .ForMember(a => a.Picture, options => options.Ignore());
+            #endregion
 
-            // Mapping for Movie Theaters
+            #region Mapping for Movie Theaters
             CreateMap<MovieTheater, MovieTheaterDTO>()
                 .ForMember(mty => mty.Latitude, dto => dto.MapFrom(prop => prop.Location.Y))
                 .ForMember(mtx => mtx.Longitude, dto => dto.MapFrom(prop => prop.Location.X));
             CreateMap<MovieTheaterCreationDTO, MovieTheater>()
                 .ForMember(mt => mt.Location, loc => loc.MapFrom(dto => geometryFactory.CreatePoint(new Coordinate(dto.Longitude, dto.Latitude))));
+            #endregion
 
-            // Mapping for Movies
+            #region Mapping for Movie Creation
             CreateMap<MovieCreationDTO, Movie>()
                 .ForMember(m => m.Poster, options => options.Ignore())
                 .ForMember(m => m.MoviesGenres, options => options.MapFrom(MapMoviesGenres))
                 .ForMember(m => m.MovieTheatersMovies, options => options.MapFrom(MapMovieTheatersMovies))
                 .ForMember(m => m.MoviesActors, options => options.MapFrom(MapMoviesActors));
+            #endregion
 
+            #region Mapping for Movie
             CreateMap<Movie, MovieDTO>()
                 .ForMember(m => m.Genres, options => options.MapFrom(MapMoviesGenres))
                 .ForMember(m => m.MovieTheaters, options => options.MapFrom(MapMovieTheatersMovies))
                 .ForMember(m => m.Actors, options => options.MapFrom(MapMoviesActors));
+            #endregion
+
+            #region Mapping for Users
+            CreateMap<IdentityUser, UserDTO>();
+            #endregion
         }
 
+        #region Mapping for Movie Creation - MapFrom Private Methods
         private List<GenreDTO> MapMoviesGenres(Movie movie, MovieDTO movieDTO)
         {
             var result = new List<GenreDTO>();
@@ -46,7 +58,11 @@ namespace ReactMoviesWebApi.Helpers
             {
                 foreach (var genre in movie.MoviesGenres)
                 {
-                    result.Add(new GenreDTO() { Id = genre.GenreId, Name = genre.Genre.Name });
+                    result.Add(new GenreDTO()
+                    {
+                        Id = genre.GenreId,
+                        Name = genre.Genre.Name
+                    });
                 }
             }
 
@@ -95,7 +111,9 @@ namespace ReactMoviesWebApi.Helpers
 
             return result;
         }
+        #endregion
 
+        #region Mapping for Movie - MapFrom Private Methods
         private List<MoviesGenres> MapMoviesGenres(MovieCreationDTO movieCreationDTO, Movie movie)
         {
             var result = new List<MoviesGenres>();
@@ -107,7 +125,10 @@ namespace ReactMoviesWebApi.Helpers
 
             foreach (var id in movieCreationDTO.GenresIds)
             {
-                result.Add(new MoviesGenres() { GenreId = id });
+                result.Add(new MoviesGenres()
+                {
+                    GenreId = id
+                });
             }
 
             return result;
@@ -124,7 +145,10 @@ namespace ReactMoviesWebApi.Helpers
 
             foreach (var id in movieCreationDTO.MovieTheatersIds)
             {
-                result.Add(new MovieTheatersMovies() { MovieTheaterId = id });
+                result.Add(new MovieTheatersMovies()
+                {
+                    MovieTheaterId = id
+                });
             }
 
             return result;
@@ -141,10 +165,15 @@ namespace ReactMoviesWebApi.Helpers
 
             foreach (var actor in movieCreationDTO.Actors)
             {
-                result.Add(new MoviesActors() { ActorId = actor.Id, Character = actor.Character });
+                result.Add(new MoviesActors()
+                {
+                    ActorId = actor.Id,
+                    Character = actor.Character
+                });
             }
 
             return result;
         }
+        #endregion
     }
 }

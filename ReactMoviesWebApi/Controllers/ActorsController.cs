@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +10,9 @@ using ReactMoviesWebApi.Helpers;
 
 namespace ReactMoviesWebApi.Controllers
 {
-    [Route("api/actors")]
     [ApiController]
-    [EnableCors]
+    [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "IsAdmin")]
     public class ActorsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -24,6 +26,27 @@ namespace ReactMoviesWebApi.Controllers
             _mapper = mapper;
             _fileStorageService = fileStorageService;
         }
+
+        #region Create
+
+        [HttpPost]
+        public async Task<ActionResult> Post([FromForm] ActorCreationDTO actorCreationDTO)
+        {
+            var actor = _mapper.Map<Actor>(actorCreationDTO);
+
+            if (actorCreationDTO.Picture != null)
+            {
+                actor.Picture = await _fileStorageService.SaveFile(containerName, actorCreationDTO.Picture);
+            }
+
+            _context.Add(actor);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        #endregion
+
+        #region Read
 
         [HttpGet]
         public async Task<ActionResult<List<ActorDTO>>> Get([FromQuery] PaginationDTO paginationDTO)
@@ -63,20 +86,9 @@ namespace ReactMoviesWebApi.Controllers
                 .ToListAsync();
         }
 
-        [HttpPost]
-        public async Task<ActionResult> Post([FromForm] ActorCreationDTO actorCreationDTO)
-        {
-            var actor = _mapper.Map<Actor>(actorCreationDTO);
+        #endregion
 
-            if (actorCreationDTO.Picture != null)
-            {
-                actor.Picture = await _fileStorageService.SaveFile(containerName, actorCreationDTO.Picture);
-            }
-
-            _context.Add(actor);
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
+        #region Update
 
         [HttpPut("{id:int}")]
         public async Task<ActionResult> Put(int id, [FromForm] ActorCreationDTO actorCreationDTO)
@@ -99,6 +111,10 @@ namespace ReactMoviesWebApi.Controllers
             return NoContent();
         }
 
+        #endregion
+
+        #region Delete
+
         [HttpDelete("{id:int}")]
         public async Task<ActionResult> Delete(int id)
         {
@@ -114,5 +130,7 @@ namespace ReactMoviesWebApi.Controllers
             await _fileStorageService.DeleteFile(actor.Picture, containerName);
             return NoContent();
         }
+
+        #endregion
     }
 }

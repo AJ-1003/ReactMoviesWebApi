@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReactMoviesWebApi.DTO;
@@ -7,8 +9,9 @@ using ReactMoviesWebApi.Helpers;
 
 namespace ReactMoviesWebApi.Controllers
 {
-    [Route("api/movietheaters")]
     [ApiController]
+    [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "IsAdmin")]
     public class MovieTheatersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -19,6 +22,21 @@ namespace ReactMoviesWebApi.Controllers
             _context = context;
             _mapper = mapper;
         }
+
+        #region Create
+
+        [HttpPost]
+        public async Task<ActionResult> Post(MovieTheaterCreationDTO movieTheaterCreationDTO)
+        {
+            var movieTheater = _mapper.Map<MovieTheater>(movieTheaterCreationDTO);
+            _context.Add(movieTheater);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        #endregion
+
+        #region Read
 
         [HttpGet]
         public async Task<ActionResult<List<MovieTheaterDTO>>> Get([FromQuery] PaginationDTO paginationDTO)
@@ -42,14 +60,9 @@ namespace ReactMoviesWebApi.Controllers
             return _mapper.Map<MovieTheaterDTO>(movieTheater);
         }
 
-        [HttpPost]
-        public async Task<ActionResult> Post(MovieTheaterCreationDTO movieTheaterCreationDTO)
-        {
-            var movieTheater = _mapper.Map<MovieTheater>(movieTheaterCreationDTO);
-            _context.Add(movieTheater);
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
+        #endregion
+
+        #region Update
 
         [HttpPut("{id:int}")]
         public async Task<ActionResult> Put(int id, MovieTheaterCreationDTO movieTheaterCreationDTO)
@@ -66,6 +79,10 @@ namespace ReactMoviesWebApi.Controllers
             return NoContent();
         }
 
+        #endregion
+
+        #region Delete
+
         [HttpDelete("{id:int}")]
         public async Task<ActionResult> Delete(int id)
         {
@@ -80,5 +97,7 @@ namespace ReactMoviesWebApi.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        #endregion
     }
 }

@@ -8,22 +8,28 @@ using ReactMoviesWebApi;
 using ReactMoviesWebApi.API_Behavior;
 using ReactMoviesWebApi.Filters;
 using ReactMoviesWebApi.Helpers;
-using ReactMoviesWebApi.Services;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.OpenApi.Models;
+
+#region Add services to the container
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 ConfigurationManager configuration = builder.Configuration;
 IWebHostEnvironment environment = builder.Environment;
 
+#region DB Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.UseNetTopologySuite());
 });
+#endregion
 
+#region AutoMapper
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddSingleton(provider => new MapperConfiguration(config =>
 {
@@ -31,9 +37,17 @@ builder.Services.AddSingleton(provider => new MapperConfiguration(config =>
     config.AddProfile(new AutoMapperProfiles(geometryFactory));
 }).CreateMapper());
 builder.Services.AddSingleton(NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326));
+#endregion
 
+#region Azure File Storage
 builder.Services.AddScoped<IFileStorageService, AzureStorageService>();
+#endregion
 
+#region Azure Insights
+builder.Services.AddApplicationInsightsTelemetry(configuration["APPINSIGHTS_CONNECTIONSTRING"]);
+#endregion
+
+#region CORS
 builder.Services.AddCors(options =>
 {
     var frontendUrl = configuration.GetValue<string>("frontend_url");
@@ -46,46 +60,78 @@ builder.Services.AddCors(options =>
         .WithExposedHeaders(new string[] { "totalAmountOfRecords" });
     });
 });
+#endregion
 
+#region Filters
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add(typeof(MyExceptionFilter));
     options.Filters.Add(typeof(ParseBadRequest));
 }).ConfigureApiBehaviorOptions(BadRequestBehavior.Parse);
+#endregion
 
+#region Swagger
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// ------------------------------< CLEANUP CODE >------------------------------
-//builder.Services.AddResponseCaching();
-// ------------------------------< CLEANUP CODE >------------------------------
+builder.Services.AddSwaggerGen(options =>
+{
+    var securityScheme = new OpenApiSecurityScheme
+    {
+        Name = "JWT Authentication",
+        Description = "Enter a valid JWT bearer token",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Reference = new OpenApiReference
+        {
+            Id = JwtBearerDefaults.AuthenticationScheme,
+            Type = ReferenceType.SecurityScheme
+        }
+    };
 
+    options.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {securityScheme, new string[] {} }
+    });
+});
+#endregion
+
+#region Identity, Authentication, Authorization
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("IsAdmin", policy => policy.RequireClaim("role", "admin"));
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Key:Jwt"]))
-        }
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"])),
+            ClockSkew = TimeSpan.Zero
+        };
     });
+#endregion
 
-// ------------------------------< CLEANUP CODE >------------------------------
-//builder.Services.AddSingleton<IRepository, InMemoryRepository>();
-//builder.Services.AddTransient<MyActionFilter>();
-// ------------------------------< CLEANUP CODE >------------------------------
+#endregion
+
+#region Configure the HTTP request pipeline
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -98,10 +144,6 @@ app.UseRouting();
 
 app.UseCors();
 
-// ------------------------------< CLEANUP CODE >------------------------------
-//app.UseResponseCaching();
-// ------------------------------< CLEANUP CODE >------------------------------
-
 app.UseAuthentication();
 
 app.UseAuthorization();
@@ -109,3 +151,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+#endregion

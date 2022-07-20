@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "identityapp1": {
+      "ignored": "true",
+      "type": "identityapp"
+    },
+    "storage1": {
+      "ignored": "true",
+      "type": "storage",
+      "connectionId": "ConnectionStrings:AzureStorageConnection"
+    },
+    "mssql1": {
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourcegroups/[parameters('resourceGroupName')]/providers/Microsoft.Sql/servers/reactmovieswebapidbserver/databases/ReactMoviesWebApi_db",
+      "type": "mssql.azure",
+      "connectionId": "ConnectionStrings:DefaultConnection",
+      "dynamicId": null
+    }
+  }
+}

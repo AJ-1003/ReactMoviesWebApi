@@ -11,6 +11,8 @@ namespace ReactMoviesWebApi.Helpers
             connectionString = configuration.GetConnectionString("AzureStorageConnection");
         }
 
+        #region DeleteFile
+
         public async Task DeleteFile(string fileRoute, string containerName)
         {
             if (string.IsNullOrEmpty(fileRoute))
@@ -25,11 +27,19 @@ namespace ReactMoviesWebApi.Helpers
             await blob.DeleteIfExistsAsync();
         }
 
+        #endregion
+
+        #region EditFile
+
         public async Task<string> EditFile(string containerName, IFormFile file, string fileRoute)
         {
             await DeleteFile(fileRoute, containerName);
             return await SaveFile(containerName, file);
         }
+
+        #endregion
+
+        #region SaveFile
 
         public async Task<string> SaveFile(string containerName, IFormFile file)
         {
@@ -43,5 +53,8 @@ namespace ReactMoviesWebApi.Helpers
             await blob.UploadAsync(file.OpenReadStream());
             return blob.Uri.ToString();
         }
+
+        #endregion
+
     }
 }

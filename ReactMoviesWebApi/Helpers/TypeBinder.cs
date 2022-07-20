@@ -29,20 +29,5 @@ namespace ReactMoviesWebApi.Helpers
                 return Task.CompletedTask;
             }
         }
-
-        //public static ValueTask<MoviesActorsCreationDTO?> BindAsync(HttpContext httpContext, ParameterInfo parameter)
-        //{
-        //    // parse any values required from the Request
-        //    int.TryParse(httpContext.Request.Form["Id"], out var id);
-        //    //var test = httpContext.Request.Form
-        //    // return the CreateTicketDto
-        //    return ValueTask.FromResult<MoviesActorsCreationDTO?>(
-        //        new MoviesActorsCreationDTO()
-        //        {
-        //            Id = id,
-        //            Character = httpContext.Request.Form["Character"]
-        //        }
-        //    );
-        //}
     }
 }

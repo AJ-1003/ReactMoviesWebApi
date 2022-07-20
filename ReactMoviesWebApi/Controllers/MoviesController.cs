@@ -1,4 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReactMoviesWebApi.DTO;
@@ -7,23 +10,50 @@ using ReactMoviesWebApi.Helpers;
 
 namespace ReactMoviesWebApi.Controllers
 {
-    [Route("api/movies")]
     [ApiController]
+    [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "IsAdmin")]
     public class MoviesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
         private readonly IFileStorageService _fileStorageService;
+        private readonly UserManager<IdentityUser> _userManager;
         private string container = "movies";
 
-        public MoviesController(ApplicationDbContext context, IMapper mapper, IFileStorageService fileStorageService)
+        public MoviesController(ApplicationDbContext context, IMapper mapper, IFileStorageService fileStorageService, UserManager<IdentityUser> userManager)
         {
             _context = context;
             _mapper = mapper;
             _fileStorageService = fileStorageService;
+            _userManager = userManager;
         }
 
+        #region Create
+
+        [HttpPost]
+        public async Task<ActionResult> Post([FromForm] MovieCreationDTO movieCreationDTO)
+        {
+            var movie = _mapper.Map<Movie>(movieCreationDTO);
+
+            if (movieCreationDTO.Poster != null)
+            {
+                movie.Poster = await _fileStorageService
+                    .SaveFile(container, movieCreationDTO.Poster);
+            }
+
+            AnnotateActorsOrder(movie);
+            _context.Add(movie);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        #endregion
+
+        #region Read
+
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<LandingPageDTO>> Get()
         {
             var top = 6;
@@ -49,6 +79,7 @@ namespace ReactMoviesWebApi.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<MovieDTO>> Get(int id)
         {
             var movie = await _context.Movies
@@ -62,7 +93,33 @@ namespace ReactMoviesWebApi.Controllers
                 return NotFound();
             }
 
+            var averageVote = 0.0;
+            var userVote = 0;
+
+            if (await _context.Ratings.AnyAsync(mr => mr.MovieId == id))
+            {
+                averageVote = await _context.Ratings
+                    .Where(mr => mr.MovieId == id)
+                    .AverageAsync(mr => mr.Rate);
+
+                if (HttpContext.User.Identity.IsAuthenticated)
+                {
+                    var email = HttpContext.User.Claims.FirstOrDefault(u => u.Type == "email").Value;
+                    var user = await _userManager.FindByEmailAsync(email);
+                    var userId = user.Id;
+
+                    var ratingDb = await _context.Ratings.FirstOrDefaultAsync(r => r.MovieId == id && r.UserId == userId);
+
+                    if (ratingDb != null)
+                    {
+                        userVote = ratingDb.Rate;
+                    }
+                }
+            }
+
             var dto = _mapper.Map<MovieDTO>(movie);
+            dto.AverageVote = averageVote;
+            dto.UserVote = userVote;
             dto.Actors = dto.Actors.OrderBy(a => a.Order).ToList();
             return dto;
         }
@@ -105,33 +162,6 @@ namespace ReactMoviesWebApi.Controllers
             return response;
         }
 
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult> Put(int id, [FromForm] MovieCreationDTO movieCreationDTO)
-        {
-            var movie = await _context.Movies
-                .Include(m => m.MoviesActors)
-                .Include(m => m.MoviesGenres)
-                .Include(m => m.MovieTheatersMovies)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (movie == null)
-            {
-                return NotFound();
-            }
-
-            movie = _mapper.Map(movieCreationDTO, movie);
-
-            if (movieCreationDTO.Poster != null)
-            {
-                movie.Poster = await _fileStorageService
-                    .EditFile(container, movieCreationDTO.Poster, movie.Poster);
-            }
-
-            AnnotateActorsOrder(movie);
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
         [HttpGet("PostGet")]
         public async Task<ActionResult<MoviePostGetDTO>> PostGet()
         {
@@ -149,6 +179,7 @@ namespace ReactMoviesWebApi.Controllers
         }
 
         [HttpGet("filter")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<MovieDTO>>> Filter([FromQuery] FilterMoviesDTO filterMoviesDTO)
         {
             var moviesQueryable = _context.Movies.AsQueryable();
@@ -184,22 +215,40 @@ namespace ReactMoviesWebApi.Controllers
             return _mapper.Map<List<MovieDTO>>(movies);
         }
 
-        [HttpPost]
-        public async Task<ActionResult> Post([FromForm] MovieCreationDTO movieCreationDTO)
+        #endregion
+
+        #region Update
+
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult> Put(int id, [FromForm] MovieCreationDTO movieCreationDTO)
         {
-            var movie = _mapper.Map<Movie>(movieCreationDTO);
+            var movie = await _context.Movies
+                .Include(m => m.MoviesActors)
+                .Include(m => m.MoviesGenres)
+                .Include(m => m.MovieTheatersMovies)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            movie = _mapper.Map(movieCreationDTO, movie);
 
             if (movieCreationDTO.Poster != null)
             {
                 movie.Poster = await _fileStorageService
-                    .SaveFile(container, movieCreationDTO.Poster);
+                    .EditFile(container, movieCreationDTO.Poster, movie.Poster);
             }
 
             AnnotateActorsOrder(movie);
-            _context.Add(movie);
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        #endregion
+
+        #region Delete
 
         [HttpDelete("{id:int}")]
         public async Task<ActionResult> Delete(int id)
@@ -217,6 +266,10 @@ namespace ReactMoviesWebApi.Controllers
             return NoContent();
         }
 
+        #endregion
+
+        #region Private Methods
+
         private void AnnotateActorsOrder(Movie movie)
         {
             if (movie.MoviesActors != null)
@@ -227,5 +280,7 @@ namespace ReactMoviesWebApi.Controllers
                 }
             }
         }
+
+        #endregion
     }
 }

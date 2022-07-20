@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using ReactMoviesWebApi;
@@ -12,9 +13,10 @@ using ReactMoviesWebApi;
 namespace ReactMoviesWebApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220719091300_ratingTable")]
+    partial class ratingTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -247,7 +249,7 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Actors", (string)null);
+                    b.ToTable("Actors");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.Genre", b =>
@@ -265,7 +267,7 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Genres", (string)null);
+                    b.ToTable("Genres");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.Movie", b =>
@@ -301,7 +303,7 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Movies", (string)null);
+                    b.ToTable("Movies");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.MoviesActors", b =>
@@ -324,7 +326,7 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("MoviesActors", (string)null);
+                    b.ToTable("MoviesActors");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.MoviesGenres", b =>
@@ -339,7 +341,7 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("MoviesGenres", (string)null);
+                    b.ToTable("MoviesGenres");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.MovieTheater", b =>
@@ -361,7 +363,7 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MovieTheaters", (string)null);
+                    b.ToTable("MovieTheaters");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.MovieTheatersMovies", b =>
@@ -376,7 +378,7 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("MovieTheatersMovies", (string)null);
+                    b.ToTable("MovieTheatersMovies");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.Rating", b =>
@@ -403,7 +405,7 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Ratings", (string)null);
+                    b.ToTable("Ratings");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

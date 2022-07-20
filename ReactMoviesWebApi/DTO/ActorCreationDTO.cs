@@ -4,8 +4,8 @@ namespace ReactMoviesWebApi.DTO
 {
     public class ActorCreationDTO
     {
-        [Required]
-        [StringLength(120)]
+        [Required(ErrorMessage = "The {0} field is required!")]
+        [StringLength(maximumLength: 120, ErrorMessage = "The {0} field cannot contain more than 120 characters!")]
         public string Name { get; set; }
         public DateTime DateOfBirth { get; set; }
         public string Biography { get; set; }
