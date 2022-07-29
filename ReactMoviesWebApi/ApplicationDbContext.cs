@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ReactMoviesWebApi.Entities;
 
@@ -22,6 +23,8 @@ namespace ReactMoviesWebApi
                 .HasKey(x => new { x.MovieTheaterId, x.MovieId });
 
             base.OnModelCreating(builder);
+
+            SeedRoles(builder);
         }
 
         public DbSet<Genre> Genres { get; set; }
@@ -32,5 +35,22 @@ namespace ReactMoviesWebApi
         public DbSet<MoviesGenres> MoviesGenres { get; set; }
         public DbSet<MovieTheatersMovies> MovieTheatersMovies { get; set; }
         public DbSet<Rating> Ratings { get; set; }
+        public DbSet<User> AppUsers { get; set; }
+        public DbSet<Entities.File> Files { get; set; }
+        public DbSet<ActorPicture> ActorPictures { get; set; }
+        public DbSet<MoviePoster> MoviePosters { get; set; }
+
+        #region Seed Roles
+        private async void SeedRoles(ModelBuilder builder)
+        {
+            builder.Entity<IdentityRole>().HasData(
+            new IdentityRole() { Id = Guid.NewGuid().ToString(), Name = "Admin", ConcurrencyStamp = "1", NormalizedName = "Admin" },
+            new IdentityRole() { Id = Guid.NewGuid().ToString(), Name = "Manager Actors", ConcurrencyStamp = "2", NormalizedName = "Manager Actors" },
+            new IdentityRole() { Id = Guid.NewGuid().ToString(), Name = "Manager Genres", ConcurrencyStamp = "3", NormalizedName = "Manager Genres" },
+            new IdentityRole() { Id = Guid.NewGuid().ToString(), Name = "Manager Movies", ConcurrencyStamp = "4", NormalizedName = "Manager Movies" },
+            new IdentityRole() { Id = Guid.NewGuid().ToString(), Name = "Manager Movie Theaters", ConcurrencyStamp = "5", NormalizedName = "Manager Movie Theaters" }
+            );
+        }
+        #endregion
     }
 }

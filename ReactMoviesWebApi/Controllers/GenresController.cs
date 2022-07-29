@@ -9,6 +9,7 @@ using ReactMoviesWebApi.DTO;
 using ReactMoviesWebApi.Entities;
 using ReactMoviesWebApi.Filters;
 using ReactMoviesWebApi.Helpers;
+using ReactMoviesWebApi.Repositories.IRepositories;
 
 namespace ReactMoviesWebApi.Controllers
 {
@@ -20,95 +21,145 @@ namespace ReactMoviesWebApi.Controllers
         private readonly ILogger<GenresController> _logger;
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IGenreRepository _genreRepository;
 
-        public GenresController(ILogger<GenresController> logger, ApplicationDbContext context, IMapper mapper)
+        public GenresController(ILogger<GenresController> logger, ApplicationDbContext context, IMapper mapper, IGenreRepository genreRepository)
         {
             _logger = logger;
             _context = context;
             _mapper = mapper;
+            _genreRepository = genreRepository;
         }
 
         #region Create
 
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] GenreCreationDTO genreCreationDTO)
+        public async Task<ActionResult<GenreDTO>> CreateAsync(CreateUpdate_GenreDTO createGenre)
         {
-            var genre = _mapper.Map<Genre>(genreCreationDTO);
-            _context.Add(genre);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            // Convert DTO to entity object
+            var genre = _mapper.Map<Genre>(createGenre);
+
+            // Pass entity object to repository
+            genre = await _genreRepository.CreateAsync(genre);
+
+            // Convert entity object to DTO
+            var genreDTO = _mapper.Map<GenreDTO>(genre);
+
+            // Return response
+            return genreDTO;
         }
 
         #endregion
 
         #region Read
 
-        [HttpGet]               // api/genres
-        public async Task<ActionResult<List<GenreDTO>>> Get([FromQuery] PaginationDTO paginationDTO)
+        [HttpGet]
+        public async Task<ActionResult<List<GenreDTO>>> GetAllAsync([FromQuery] PaginationDTO paginationDTO)
         {
             var queryable = _context.Genres.AsQueryable();
             await HttpContext.InsertParametersPaginationInHeader(queryable);
-            var genres = await queryable.OrderBy(genre => genre.Name).Paginate(paginationDTO).ToListAsync();
+            var genres = await queryable.OrderBy(g => g.Name).Paginate(paginationDTO).ToListAsync();
             return _mapper.Map<List<GenreDTO>>(genres);
         }
 
-        [HttpGet("all")]               // api/genres
+        [HttpGet("all")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<GenreDTO>>> Get()
+        public async Task<ActionResult<List<GenreDTO>>> GetAllOrderedByNameAsync()
         {
-            var genres = await _context.Genres.OrderBy(genre => genre.Name).ToListAsync();
+            // Get records from repository
+            var genres = await _genreRepository.GetAllOrderedByNameAsync();
+
+            // Return response
             return _mapper.Map<List<GenreDTO>>(genres);
+
         }
 
-        [HttpGet("{id:int}")]
-        public async Task<ActionResult<GenreDTO>> Get(int id/*, [BindRequired] string name*/)
+        [HttpGet("searchByName/{query}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<GenreDTO>>> GetByNameAsync(string query)
         {
-            var genre = await _context.Genres.FirstOrDefaultAsync(g => g.Id == id);
+            // Pass query to repository
+            var genres = await _genreRepository.GetByNameAsync(query);
 
+            // Handle null
+            if (genres == null)
+            {
+                return NotFound();
+            }
+
+            // Covert entity object to DTO
+            var genreDTO = _mapper.Map<List<GenreDTO>>(genres);
+
+            // Return response
+            return genreDTO;
+        }
+
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<GenreDTO>> GetByIdAsync(Guid id)
+        {
+            // Get entity object from DB with id
+            var genre = await _genreRepository.GetByIdAsync(id);
+
+            // Handle null
             if (genre == null)
             {
                 return NotFound();
             }
 
-            return _mapper.Map<GenreDTO>(genre);
+            // Convert entity object to DTO
+            var genreDTO = _mapper.Map<GenreDTO>(genre);
+
+            // Retrun response
+            return genreDTO;
         }
 
         #endregion
 
         #region Update
 
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult> Put(int id, [FromBody] GenreCreationDTO genreCreationDTO)
+        [HttpPut("{id:guid}")]
+        public async Task<ActionResult<GenreDTO>> UpdateAsync(Guid id, [FromBody] CreateUpdate_GenreDTO updateGenre)
         {
-            var genre = await _context.Genres.FirstOrDefaultAsync(g => g.Id == id);
+            // Conver DTO to entity object
+            var genre = _mapper.Map<Genre>(updateGenre);
 
+            // Pass entity object to repository
+            genre = await _genreRepository.UpdateAsync(id, genre);
+
+            // Handle null
             if (genre == null)
             {
                 return NotFound();
             }
 
-            genre = _mapper.Map(genreCreationDTO, genre);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            // Convert entity object to DTO
+            var genreDTO = _mapper.Map<GenreDTO>(genre);
+
+            // Return response
+            return genreDTO;
         }
 
         #endregion
 
         #region Delete
 
-        [HttpDelete("{id:int}")]
-        public async Task<ActionResult> Delete(int id)
+        [HttpDelete("{id:guid}")]
+        public async Task<ActionResult<GenreDTO>> DeleteAsync(Guid id)
         {
-            var genre = await _context.Genres.FirstOrDefaultAsync(g => g.Id == id);
+            // Get entity object from DB with id
+            var genre = await _genreRepository.DeleteAsync(id);
 
+            // Handle null
             if (genre == null)
             {
                 return NotFound();
             }
 
-            _context.Remove(new Genre() { Id = id });
-            await _context.SaveChangesAsync();
-            return NoContent();
+            // Convert entity object to DTO
+            var genreDTO = _mapper.Map<GenreDTO>(genre);
+
+            // Return response
+            return genreDTO;
         }
 
         #endregion

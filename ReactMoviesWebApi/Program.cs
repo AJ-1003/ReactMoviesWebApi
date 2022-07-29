@@ -12,6 +12,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.OpenApi.Models;
+using ReactMoviesWebApi.Repositories.IRepositories;
+using ReactMoviesWebApi.Repositories;
+using ReactMoviesWebApi.Profiles;
 
 #region Add services to the container
 
@@ -31,12 +34,31 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 #region AutoMapper
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 builder.Services.AddSingleton(provider => new MapperConfiguration(config =>
 {
     var geometryFactory = provider.GetRequiredService<GeometryFactory>();
-    config.AddProfile(new AutoMapperProfiles(geometryFactory));
+    config.AddProfile(new MovieTheatersProfile(geometryFactory));
+    config.AddProfile(new ActorsProfile());
+    config.AddProfile(new GenresProfile());
+    config.AddProfile(new MoviesProfile());
+    config.AddProfile(new UsersProfile());
 }).CreateMapper());
 builder.Services.AddSingleton(NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326));
+#endregion
+
+#region Dependancy Injection
+builder.Services.AddScoped<IAccountsRepository, AccountsRepository>();
+builder.Services.AddScoped<IActorRepository, ActorRepository>();
+builder.Services.AddScoped<IGenreRepository, GenreRepository>();
+builder.Services.AddScoped<IMovie_ActorsRepository, Movie_ActorsRepository>();
+builder.Services.AddScoped<IMovie_GenresRepository, Movie_GenresRepository>();
+builder.Services.AddScoped<IMovie_MovieTheatersRepository, Movie_MovieTheatersRepository>();
+builder.Services.AddScoped<IMovieRepository, MovieRepository>();
+builder.Services.AddScoped<IMovieTheaterRepository, MovieTheaterRepository>();
+builder.Services.AddScoped<IRatingRepository, RatingRepository>();
+builder.Services.AddScoped<ITokenHandler, ReactMoviesWebApi.Repositories.TokenHandler>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 #endregion
 
 #region Azure File Storage
@@ -100,30 +122,36 @@ builder.Services.AddSwaggerGen(options =>
 #endregion
 
 #region Identity, Authentication, Authorization
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
+    options.Password.RequiredLength = 6;
+}).AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("IsAdmin", policy => policy.RequireClaim("role", "admin"));
+    options.AddPolicy("IsAdmin", policy => policy.RequireClaim("role", "Admin"));
 });
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+builder.Services.AddAuthentication(auth =>
+{
+    auth.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    auth.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"])),
-            ClockSkew = TimeSpan.Zero
-        };
-    });
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = configuration["Jwt:Issuer"],
+        ValidAudience = configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]))
+        //ClockSkew = TimeSpan.Zero
+    };
+});
 #endregion
 
 #endregion
@@ -145,7 +173,6 @@ app.UseRouting();
 app.UseCors();
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();

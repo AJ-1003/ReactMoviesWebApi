@@ -24,7 +24,7 @@ namespace ReactMoviesWebApi.Controllers
         #region Create
 
         [HttpPost]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "IsAdmin")]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "IsAdmin")]
         public async Task<IActionResult> Post([FromBody] RatingDTO ratingDTO)
         {
             var email = HttpContext.User.Claims.FirstOrDefault(e => e.Type == "email").Value;

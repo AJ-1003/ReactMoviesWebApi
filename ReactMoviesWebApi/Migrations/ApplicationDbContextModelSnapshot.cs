@@ -48,6 +48,43 @@ namespace ReactMoviesWebApi.Migrations
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("AspNetRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "82a35415-1c8d-431a-88dc-0461b44531c9",
+                            ConcurrencyStamp = "1",
+                            Name = "Admin",
+                            NormalizedName = "Admin"
+                        },
+                        new
+                        {
+                            Id = "ae9bcb55-8d0a-4f20-bfb2-047319d5dfa3",
+                            ConcurrencyStamp = "2",
+                            Name = "Manager Actors",
+                            NormalizedName = "Manager Actors"
+                        },
+                        new
+                        {
+                            Id = "45ae724b-97ae-4967-a494-ca060942bd92",
+                            ConcurrencyStamp = "3",
+                            Name = "Manager Genres",
+                            NormalizedName = "Manager Genres"
+                        },
+                        new
+                        {
+                            Id = "c9f75713-4a7a-4c94-b66f-0819fa6effcc",
+                            ConcurrencyStamp = "4",
+                            Name = "Manager Movies",
+                            NormalizedName = "Manager Movies"
+                        },
+                        new
+                        {
+                            Id = "b0544d96-cb43-47f3-8971-64bc189b6d2c",
+                            ConcurrencyStamp = "5",
+                            Name = "Manager Movie Theaters",
+                            NormalizedName = "Manager Movie Theaters"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -223,11 +260,9 @@ namespace ReactMoviesWebApi.Migrations
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.Actor", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Biography")
                         .IsRequired()
@@ -247,16 +282,14 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Actors", (string)null);
+                    b.ToTable("Actors");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.Genre", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -265,16 +298,14 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Genres", (string)null);
+                    b.ToTable("Genres");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.Movie", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("InTheaters")
                         .HasColumnType("bit");
@@ -301,16 +332,16 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Movies", (string)null);
+                    b.ToTable("Movies");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.MoviesActors", b =>
                 {
-                    b.Property<int>("ActorId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("MovieId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("MovieId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Character")
                         .IsRequired()
@@ -324,31 +355,29 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("MoviesActors", (string)null);
+                    b.ToTable("MoviesActors");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.MoviesGenres", b =>
                 {
-                    b.Property<int>("GenreId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("GenreId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("MovieId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("MovieId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("GenreId", "MovieId");
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("MoviesGenres", (string)null);
+                    b.ToTable("MoviesGenres");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.MovieTheater", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Point>("Location")
                         .IsRequired()
@@ -361,34 +390,32 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MovieTheaters", (string)null);
+                    b.ToTable("MovieTheaters");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.MovieTheatersMovies", b =>
                 {
-                    b.Property<int>("MovieTheaterId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("MovieTheaterId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("MovieId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("MovieId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("MovieTheaterId", "MovieId");
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("MovieTheatersMovies", (string)null);
+                    b.ToTable("MovieTheatersMovies");
                 });
 
             modelBuilder.Entity("ReactMoviesWebApi.Entities.Rating", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<int>("MovieId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("MovieId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Rate")
                         .HasColumnType("int");
@@ -403,7 +430,34 @@ namespace ReactMoviesWebApi.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Ratings", (string)null);
+                    b.ToTable("Ratings");
+                });
+
+            modelBuilder.Entity("ReactMoviesWebApi.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AppUsers");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

@@ -4,7 +4,7 @@ namespace ReactMoviesWebApi.Entities
 {
     public class Movie
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         [Required(ErrorMessage = "The {0} field is required!")]
         [StringLength(maximumLength: 75, ErrorMessage = "The {0} field cannot contain more than 75 characters!")]
         public string Title { get; set; }

@@ -11,7 +11,7 @@ namespace ReactMoviesWebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "IsAdmin")]
+    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "IsAdmin")]
     public class MovieTheatersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -26,7 +26,7 @@ namespace ReactMoviesWebApi.Controllers
         #region Create
 
         [HttpPost]
-        public async Task<ActionResult> Post(MovieTheaterCreationDTO movieTheaterCreationDTO)
+        public async Task<ActionResult> Post(CreateUpdate_MovieTheaterDTO movieTheaterCreationDTO)
         {
             var movieTheater = _mapper.Map<MovieTheater>(movieTheaterCreationDTO);
             _context.Add(movieTheater);
@@ -47,8 +47,8 @@ namespace ReactMoviesWebApi.Controllers
             return _mapper.Map<List<MovieTheaterDTO>>(movieTheaters);
         }
 
-        [HttpGet("{id:int}")]
-        public async Task<ActionResult<MovieTheaterDTO>> Get(int id)
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<MovieTheaterDTO>> Get(Guid id)
         {
             var movieTheater = await _context.MovieTheaters.FirstOrDefaultAsync(mt => mt.Id == id);
 
@@ -64,8 +64,8 @@ namespace ReactMoviesWebApi.Controllers
 
         #region Update
 
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult> Put(int id, MovieTheaterCreationDTO movieTheaterCreationDTO)
+        [HttpPut("{id:guid}")]
+        public async Task<ActionResult> Put(Guid id, CreateUpdate_MovieTheaterDTO movieTheaterCreationDTO)
         {
             var movieTheater = await _context.MovieTheaters.FirstOrDefaultAsync(mt => mt.Id == id);
 
@@ -83,8 +83,8 @@ namespace ReactMoviesWebApi.Controllers
 
         #region Delete
 
-        [HttpDelete("{id:int}")]
-        public async Task<ActionResult> Delete(int id)
+        [HttpDelete("{id:guid}")]
+        public async Task<ActionResult> Delete(Guid id)
         {
             var movieTheater = await _context.MovieTheaters.FirstOrDefaultAsync(mt => mt.Id == id);
 

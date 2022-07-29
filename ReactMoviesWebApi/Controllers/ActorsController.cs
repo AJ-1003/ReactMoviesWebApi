@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using ReactMoviesWebApi.DTO;
 using ReactMoviesWebApi.Entities;
 using ReactMoviesWebApi.Helpers;
+using ReactMoviesWebApi.Repositories.IRepositories;
+using System.Text;
 
 namespace ReactMoviesWebApi.Controllers
 {
@@ -17,31 +19,31 @@ namespace ReactMoviesWebApi.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
-        private readonly IFileStorageService _fileStorageService;
-        private readonly string containerName = "actors";
+        private readonly IActorRepository _actorRepository;
 
-        public ActorsController(ApplicationDbContext context, IMapper mapper, IFileStorageService fileStorageService)
+        public ActorsController(ApplicationDbContext context, IMapper mapper, IActorRepository actorRepository)
         {
             _context = context;
             _mapper = mapper;
-            _fileStorageService = fileStorageService;
+            _actorRepository = actorRepository;
         }
 
         #region Create
 
         [HttpPost]
-        public async Task<ActionResult> Post([FromForm] ActorCreationDTO actorCreationDTO)
+        public async Task<ActionResult<ActorDTO>> CreateAsync([FromForm] CreateUpdate_ActorDTO createActor)
         {
-            var actor = _mapper.Map<Actor>(actorCreationDTO);
+            // Convert DTO to entity object
+            var actor = _mapper.Map<Actor>(createActor);
 
-            if (actorCreationDTO.Picture != null)
-            {
-                actor.Picture = await _fileStorageService.SaveFile(containerName, actorCreationDTO.Picture);
-            }
+            // Pass entity object to repository
+            actor = await _actorRepository.CreateAsync(actor, createActor.Picture);
 
-            _context.Add(actor);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            // Convert entity object to DTO
+            var actorDTO = _mapper.Map<ActorDTO>(actor);
+
+            // Return response
+            return actorDTO;
         }
 
         #endregion
@@ -49,86 +51,128 @@ namespace ReactMoviesWebApi.Controllers
         #region Read
 
         [HttpGet]
-        public async Task<ActionResult<List<ActorDTO>>> Get([FromQuery] PaginationDTO paginationDTO)
+        public async Task<ActionResult<List<ActorDTO>>> GetAllAsync([FromQuery] PaginationDTO paginationDTO)
         {
             var queryable = _context.Actors.AsQueryable();
             await HttpContext.InsertParametersPaginationInHeader(queryable);
-            var actors = await queryable.OrderBy(actor => actor.Name).Paginate(paginationDTO).ToListAsync();
+            var actors = await queryable.OrderBy(a => a.Name).Paginate(paginationDTO).ToListAsync();
             return _mapper.Map<List<ActorDTO>>(actors);
         }
 
-        [HttpGet("{id:int}")]
-        public async Task<ActionResult<ActorDTO>> Get(int id)
+        [HttpGet("all")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<ActorDTO>>> GetAllOrderedByNameAsync()
         {
-            var actor = await _context.Actors.FirstOrDefaultAsync(a => a.Id == id);
+            // Get records from repository
+            var actors = await _actorRepository.GetAllOrderedByNameAsync();
 
+            // Return response
+            return _mapper.Map<List<ActorDTO>>(actors);
+
+        }
+
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<ActorDTO>> GetByIdAsync(Guid id)
+        {
+            // Get entity object from DB with id
+            var actor = await _actorRepository.GetByIdAsync(id);
+
+            // Handle null
             if (actor == null)
             {
                 return NotFound();
             }
 
-            return _mapper.Map<ActorDTO>(actor);
+            // Convert entity object to DTO
+            var actorDTO = _mapper.Map<ActorDTO>(actor);
+
+            // Retrun response
+            return actorDTO;
         }
 
         [HttpGet("searchByName/{query}")]
-        public async Task<ActionResult<List<ActorsMovieDTO>>> SearchByName(string query)
+        public async Task<ActionResult<List<ActorsMovieDTO>>> GetByNameAsync(string query)
         {
-            if (string.IsNullOrWhiteSpace(query))
+            // Pass query to repository
+            var actors = await _actorRepository.GetByNameAsync(query);
+
+            // Handle null
+            if (actors == null)
             {
-                return new List<ActorsMovieDTO>();
+                return NotFound();
             }
 
-            return await _context.Actors
-                .Where(a => a.Name.Contains(query))
-                .OrderBy(a => a.Name)
-                .Select(a => new ActorsMovieDTO { Id = a.Id, Name = a.Name, Picture = a.Picture })
-                .Take(5)
-                .ToListAsync();
+            // Covert entity object to DTO
+            var actorsDTO = _mapper.Map<List<ActorsMovieDTO>>(actors.ToList());
+
+            // Return response
+            return actorsDTO;
         }
 
         #endregion
 
         #region Update
 
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult> Put(int id, [FromForm] ActorCreationDTO actorCreationDTO)
+        [HttpPut("{id:guid}")]
+        public async Task<ActionResult<ActorDTO>> UpdateAsync(Guid id, [FromForm] CreateUpdate_ActorDTO updateActor)
         {
-            var actor = await _context.Actors.FirstOrDefaultAsync(a => a.Id == id);
+            // Conver DTO to domain object
+            var actor = _mapper.Map<Actor>(updateActor);
 
+            // Pass entity object to repository
+            actor = await _actorRepository.UpdateAsync(id, actor, updateActor.Picture);
+
+            // Handle null
             if (actor == null)
             {
                 return NotFound();
             }
 
-            actor = _mapper.Map(actorCreationDTO, actor);
+            // Convert entity object to DTO
+            var actorDTO = _mapper.Map<ActorDTO>(actor);
 
-            if (actorCreationDTO.Picture != null)
-            {
-                actor.Picture = await _fileStorageService.EditFile(containerName, actorCreationDTO.Picture, actor.Picture);
-            }
-
-            await _context.SaveChangesAsync();
-            return NoContent();
+            // Return response
+            return actorDTO;
         }
 
         #endregion
 
         #region Delete
 
-        [HttpDelete("{id:int}")]
-        public async Task<ActionResult> Delete(int id)
+        [HttpDelete("{id:guid}")]
+        public async Task<ActionResult<ActorDTO>> DeleteAsync(Guid id)
         {
-            var actor = await _context.Actors.FirstOrDefaultAsync(a => a.Id == id);
+            // Get entity object from DB with id
+            var actor = await _actorRepository.DeleteAsync(id);
 
+            // Handle null
             if (actor == null)
             {
                 return NotFound();
             }
 
-            _context.Remove(actor);
-            await _context.SaveChangesAsync();
-            await _fileStorageService.DeleteFile(actor.Picture, containerName);
-            return NoContent();
+            // Convert entity object to DTO
+            var actorDTO = _mapper.Map<ActorDTO>(actor);
+
+            // Return response
+            return actorDTO;
+        }
+
+        #endregion
+
+        #region Private Methods - (NOT IN USE)
+
+        private string ReadAsString(IFormFile file)
+        {
+            var result = new StringBuilder();
+            using (var reader = new StreamReader(file.OpenReadStream()))
+            {
+                while (reader.Peek() >= 0)
+                {
+                    result.Append(reader.ReadLine());
+                }
+            }
+            return result.ToString();
         }
 
         #endregion
