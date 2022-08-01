@@ -36,7 +36,6 @@ namespace ReactMoviesWebApi
         public DbSet<MovieTheatersMovies> MovieTheatersMovies { get; set; }
         public DbSet<Rating> Ratings { get; set; }
         public DbSet<User> AppUsers { get; set; }
-        public DbSet<Entities.File> Files { get; set; }
         public DbSet<ActorPicture> ActorPictures { get; set; }
         public DbSet<MoviePoster> MoviePosters { get; set; }
 

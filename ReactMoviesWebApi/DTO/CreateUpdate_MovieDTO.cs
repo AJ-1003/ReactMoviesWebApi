@@ -12,8 +12,7 @@ namespace ReactMoviesWebApi.DTO
         public string Trailer { get; set; }
         public bool InTheaters { get; set; }
         public DateTime ReleasedDate { get; set; }
-        //public IFormFile Poster { get; set; }
-        public MoviePoster Poster { get; set; }
+        public IFormFile Poster { get; set; }
 
         //[ModelBinder(BinderType = typeof(TypeBinder<List<Guid>>))]
         public List<Guid> GenresIds { get; set; }
